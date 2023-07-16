@@ -10,6 +10,7 @@
 const { onRequest } = require("firebase-functions/v2/https");
 const logger = require("firebase-functions/logger");
 // const functions = require('firebase-functions');
+import axios from 'axios';
 const axios = require('axios');
 
 // Create and deploy your first functions
@@ -95,34 +96,53 @@ exports.gitGithubStarredRepos = onRequest(async (request, response) => {
 //     }
 // });
 
-exports.GitHubWebHook = onRequest(async (request, response) => {
-    try {
-        const payload = request.body;
+// exports.GitHubWebHook = onRequest(async (request, response) => {
+//     try {
+//         const access_token = request.body.access_token;
+//         const payload = request.body;
 
-        // Check if the payload is for an issue, pull request, or comment
-        if (payload.action === "opened" || payload.action === "created") {
-            const comment = payload.comment || payload.issue;
+//         // Check if the payload is for an issue, pull request, or comment
+//         if (payload.action === "opened" || payload.action === "created") {
+//             const comment = payload.comment || payload.issue;
 
-            // Get the username who made the comment
-            const username = comment.user.login;
+//             // Get the username who made the comment
+//             const username = comment.user.login;
 
-            // Generate a reply message using PaLM
-            const reply = generateReply(comment.body);
+//             // Generate a reply message using PaLM
+//             const reply = generateReply(comment.body);
 
-            // Start a background task to post the reply as a comment back to GitHub
-            postComment(payload.repository.full_name, comment.id, reply)
-                .then(() => {
-                    // Send a success response once the comment is posted
-                    response.status(200).send("Reply posted successfully");
-                })
-                .catch((error) => {
-                    logger.error("Error posting comment:", error);
-                    response.status(500).send("Error posting comment");
-                });
-        } else {
-            // Ignore other actions
-            response.status(200).send("Action ignored");
-        }
+//             // Start a background task to post the reply as a comment back to GitHub
+//             postComment(username,payload.repository.full_name, comment.id, reply)
+//                 .then(() => {
+//                     // Send a success response once the comment is posted
+//                     response.status(200).send("Reply posted successfully");
+//                 })
+//                 .catch((error) => {
+//                     logger.error("Error posting comment:", error);
+//                     response.status(500).send("Error posting comment");
+//                 });
+//         } else {
+//             // Ignore other actions
+//             response.status(200).send("Action ignored");
+//         }
+
+//         const postComment = async (username,full_name,comment, reply ) => {
+//             try {
+//               const response = await axios.post('https://api.github.com/repos/'+username+'/'+full_name+'/'+comment, {
+//                 body: comment,
+//               }, 
+//               {
+//                 headers: {
+//                   Authorization: 'Bearer'+ access_token,
+//                 },
+//               });
+          
+//               console.log(response.data); // If you want to log the response data
+//             } catch (error) {
+//               console.error(error);
+//             }
+//           };
+          
 
         // const payload = request.body;///
 
@@ -139,11 +159,15 @@ exports.GitHubWebHook = onRequest(async (request, response) => {
         // res.status(201).send({
         // message: "Webhook Event successfully logged"
         // });///
-    } catch (error) {
-        logger.error("Error on GitHub webhook:", error);
-        response.status(500).send("Error processing webhook");
-    }
-});
+    // } catch (error) {
+    //     logger.error("Error on GitHub webhook:", error);
+    //     response.status(500).send("Error processing webhook");
+    // }
+// });
+
+// async function postComment(name, id, reply){
+
+// }
 
 // exports.getGitHubwebhook = functions.https.onRequest(async (request, response) => {
 //     try {
@@ -259,3 +283,57 @@ exports.GitHubWebHook = onRequest(async (request, response) => {
 //     }
 // });
 
+const { spawnSync } = require('child_process');
+const util = require('util');
+const exec = util.promisify(require('child_process').exec);
+
+exports.GitHubWebHook = onRequest(async (request, response) => {
+  try {
+    const payload = request.body;
+    const issueOrComment = payload.issue || payload.comment;
+
+    // Check if the payload is for an issue, pull request, or comment
+    if (issueOrComment) {
+      const body = issueOrComment.body;
+      const reply = await generateReply(body);
+
+      // Post the reply as a comment back to GitHub
+      await postComment(issueOrComment.html_url, reply);
+
+      // Send a success response
+      response.status(200).send("Reply posted successfully");
+    } else {
+      // Ignore other actions
+      response.status(200).send("Action ignored");
+    }
+  } catch (error) {
+    logger.error("error on github webhook", error.message);
+    response.status(500).send(error.message);
+  }
+});
+
+async function generateReply(commentBody) {
+  // Run PaLM as a child process
+  const result = spawnSync('palm', ['reply', '-m', 'my-model'], { input: commentBody });
+
+  if (result.status !== 0) {
+    throw new Error(`PaLM exited with status code ${result.status}`);
+  }
+
+  return result.stdout.toString().trim();
+}
+
+async function postComment(url, comment) {
+  const authToken = process.env.GITHUB_ACCESS_TOKEN;
+  const repoUrl = url.substring(0, url.indexOf('/issues/'));
+  const issueNumber = url.substring(url.lastIndexOf('/') + 1);
+  const apiUrl = `${repoUrl}/issues/${issueNumber}/comments`;
+
+  const { stdout, stderr } = await exec(`curl -H "Authorization: token ${authToken}" -d '{"body": "${comment}"}' -X POST ${apiUrl}`);
+
+  if (stderr) {
+    throw new Error(stderr);
+  }
+
+  return JSON.parse(stdout);
+}
