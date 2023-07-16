@@ -66,63 +66,63 @@ exports.gitGithubStarredRepos = onRequest(async (request, response) => {
 
 });
 
+// exports.GitHubWebHook = onRequest(async (request, response) => {
+//     try {
+//         const payload = request.body;
+        
+//         // Check if the payload is for an issue, pull request, or comment
+//         if (payload.action === "opened" || payload.action === "created") {
+//             const comment = payload.comment || payload.issue;
+            
+//             // Get the username who made the comment
+//             const username = comment.user.login;
+            
+//             // Generate a reply message using PaLM
+//             const reply = generateReply(comment.body);
+            
+//             // Post the reply as a comment back to GitHub
+//             await postComment(payload.repository.full_name, comment.id, reply);
+            
+//             // Send a success response
+//             response.status(200).send("Reply posted successfully");
+//         } else {
+//             // Ignore other actions
+//             response.status(200).send("Action ignored");
+//         }
+//     } catch (error) {
+//         logger.error("error on github webhook", error.message);
+//         response.status(500).send(error.message);
+//     }
+// });
+
 exports.GitHubWebHook = onRequest(async (request, response) => {
     try {
         const payload = request.body;
-        
+
         // Check if the payload is for an issue, pull request, or comment
         if (payload.action === "opened" || payload.action === "created") {
             const comment = payload.comment || payload.issue;
-            
+
             // Get the username who made the comment
             const username = comment.user.login;
-            
+
             // Generate a reply message using PaLM
             const reply = generateReply(comment.body);
-            
-            // Post the reply as a comment back to GitHub
-            await postComment(payload.repository.full_name, comment.id, reply);
-            
-            // Send a success response
-            response.status(200).send("Reply posted successfully");
+
+            // Start a background task to post the reply as a comment back to GitHub
+            postComment(payload.repository.full_name, comment.id, reply)
+                .then(() => {
+                    // Send a success response once the comment is posted
+                    response.status(200).send("Reply posted successfully");
+                })
+                .catch((error) => {
+                    logger.error("Error posting comment:", error);
+                    response.status(500).send("Error posting comment");
+                });
         } else {
             // Ignore other actions
             response.status(200).send("Action ignored");
         }
-    } catch (error) {
-        logger.error("error on github webhook", error.message);
-        response.status(500).send(error.message);
-    }
-});
-
-// exports.GitHubWebHook = onRequest(async (request, response) => {
-//     try {
-        // const payload = request.body;
-
-        // // Check if the payload is for an issue, pull request, or comment
-        // if (payload.action === "opened" || payload.action === "created") {
-        //     const comment = payload.comment || payload.issue;
-
-        //     // Get the username who made the comment
-        //     const username = comment.user.login;
-
-        //     // Generate a reply message using PaLM
-        //     const reply = generateReply(comment.body);
-
-        //     // Start a background task to post the reply as a comment back to GitHub
-        //     postComment(payload.repository.full_name, comment.id, reply)
-        //         .then(() => {
-        //             // Send a success response once the comment is posted
-        //             response.status(200).send("Reply posted successfully");
-        //         })
-        //         .catch((error) => {
-        //             logger.error("Error posting comment:", error);
-        //             response.status(500).send("Error posting comment");
-        //         });
-        // } else {
-        //     // Ignore other actions
-        //     response.status(200).send("Action ignored");
-        // }
 
         // const payload = request.body;///
 
@@ -139,11 +139,11 @@ exports.GitHubWebHook = onRequest(async (request, response) => {
         // res.status(201).send({
         // message: "Webhook Event successfully logged"
         // });///
-//     } catch (error) {
-//         logger.error("Error on GitHub webhook:", error);
-//         response.status(500).send("Error processing webhook");
-//     }
-// });
+    } catch (error) {
+        logger.error("Error on GitHub webhook:", error);
+        response.status(500).send("Error processing webhook");
+    }
+});
 
 // exports.getGitHubwebhook = functions.https.onRequest(async (request, response) => {
 //     try {
