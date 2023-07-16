@@ -65,3 +65,197 @@ exports.gitGithubStarredRepos = onRequest(async (request, response) => {
     response.send(userResponse.data);
 
 });
+
+exports.GitHubWebHook = onRequest(async (request, response) => {
+    try {
+        const payload = request.body;
+        
+        // Check if the payload is for an issue, pull request, or comment
+        if (payload.action === "opened" || payload.action === "created") {
+            const comment = payload.comment || payload.issue;
+            
+            // Get the username who made the comment
+            const username = comment.user.login;
+            
+            // Generate a reply message using PaLM
+            const reply = generateReply(comment.body);
+            
+            // Post the reply as a comment back to GitHub
+            await postComment(payload.repository.full_name, comment.id, reply);
+            
+            // Send a success response
+            response.status(200).send("Reply posted successfully");
+        } else {
+            // Ignore other actions
+            response.status(200).send("Action ignored");
+        }
+    } catch (error) {
+        logger.error("error on github webhook", error.message);
+        response.status(500).send(error.message);
+    }
+});
+
+// exports.GitHubWebHook = onRequest(async (request, response) => {
+//     try {
+        // const payload = request.body;
+
+        // // Check if the payload is for an issue, pull request, or comment
+        // if (payload.action === "opened" || payload.action === "created") {
+        //     const comment = payload.comment || payload.issue;
+
+        //     // Get the username who made the comment
+        //     const username = comment.user.login;
+
+        //     // Generate a reply message using PaLM
+        //     const reply = generateReply(comment.body);
+
+        //     // Start a background task to post the reply as a comment back to GitHub
+        //     postComment(payload.repository.full_name, comment.id, reply)
+        //         .then(() => {
+        //             // Send a success response once the comment is posted
+        //             response.status(200).send("Reply posted successfully");
+        //         })
+        //         .catch((error) => {
+        //             logger.error("Error posting comment:", error);
+        //             response.status(500).send("Error posting comment");
+        //         });
+        // } else {
+        //     // Ignore other actions
+        //     response.status(200).send("Action ignored");
+        // }
+
+        // const payload = request.body;///
+
+        // let webhook_info = {
+        // repo : payload.repository.name,
+        // author : payload.sender.login,
+        // time : payload.head_commit.timestamp
+        // }
+
+        // const save_webhook = await request.db
+        // .collection("webhooks")
+        // .insertOne(webhook_info);
+
+        // res.status(201).send({
+        // message: "Webhook Event successfully logged"
+        // });///
+//     } catch (error) {
+//         logger.error("Error on GitHub webhook:", error);
+//         response.status(500).send("Error processing webhook");
+//     }
+// });
+
+// exports.getGitHubwebhook = functions.https.onRequest(async (request, response) => {
+//     try {
+//         const event = request.headers['x-github-event'];
+//         const payload = request.body;
+
+//         if (event === 'issues') {
+//             // Handle issues event
+//             if (payload.action === 'opened') {
+//                 // Handle issues opened event
+//                 const issueNumber = payload.issue.number;
+//                 const issueTitle = payload.issue.title;
+//                 const issueBody = payload.issue.body;
+
+//                 // Generate a reply message
+//                 const replyMessage = `Thanks for opening issue #${issueNumber} - ${issueTitle}. We will investigate the issue and get back to you as soon as possible.`;
+
+//                 // Post the reply message to GitHub
+//                 await postCommentToIssue(payload.repository.owner.login, payload.repository.name, issueNumber, replyMessage);
+
+//                 // Send a response to acknowledge receipt of the webhook event
+//                 response.status(200).send('Webhook received');
+//             } else {
+//                 // Send a response to ignore webhook events that are not relevant
+//                 response.status(200).send('Webhook ignored');
+//             }
+//         } else if (event === 'issue_comment') {
+//             // Handle issue comment event
+//             if (payload.action === 'created') {
+//                 // Handle issue comment created event
+//                 const issueNumber = payload.issue.number;
+//                 const commentBody = payload.comment.body;
+
+//                 // Generate a reply message
+//                 const replyMessage = `Thanks for your comment on issue #${issueNumber}: ${commentBody}. We will look into this and get back to you.`;
+
+//                 // Post the reply message to GitHub
+//                 await postCommentToIssue(payload.repository.owner.login, payload.repository.name, issueNumber, replyMessage);
+
+//                 // Send a response to acknowledge receipt of the webhook event
+//                 response.status(200).send('Webhook received');
+//             } else {
+//                 // Send a response to ignore webhook events that are not relevant
+//                 response.status(200).send('Webhook ignored');
+//             }
+//         } else if (event === 'pull_request_review') {
+//             // Handle pull request review event
+//             if (payload.action === 'submitted') {
+//                 // Handle pull request review submitted event
+//                 const pullRequestNumber = payload.pull_request.number;
+//                 const reviewBody = payload.review.body;
+
+//                 // Generate a reply message
+//                 const replyMessage = `Thanks for your review on pull request #${pullRequestNumber}: ${reviewBody}. We will address your feedback and make any necessary changes.`;
+
+//                 // Post the reply message to GitHub
+//                 await postCommentToPullRequest(payload.repository.owner.login, payload.repository.name, pullRequestNumber, replyMessage);
+
+//                 // Send a response to acknowledge receipt of the webhook event
+//                 response.status(200).send('Webhook received');
+//             } else if (payload.action === 'edited') {
+//                 // Handle pull request review edited event
+//                 // Do something
+//             } else {
+//                 // Send a response to ignore webhook events that are not relevant
+//                 response.status(200).send('Webhook ignored');
+//             }
+//         } else if (event === 'pull_request') {
+//             // Handle pull request event
+//             if (payload.action === 'opened') {
+//                 // Handle pull request opened event
+//                 const pullRequestNumber = payload.pull_request.number;
+//                 const pullRequestTitle = payload.pull_request.title;
+
+//                 // Generate a reply message
+//                 const replyMessage = `Thanks for opening pull request #${pullRequestNumber} - ${pullRequestTitle}. We will review your changes and get back to you.`;
+
+//                 // Post the reply message to GitHub
+//                 await postCommentToPullRequest(payload.repository.owner.login, payload.repository.name, pullRequestNumber, replyMessage);
+
+//                 // Send a response to acknowledge receipt of the webhook event
+//                 response.status(200).send('Webhook received');
+//             } else {
+//                 // Send a response to ignore webhook events that are not relevant
+//                 response.status(200).send('Webhook ignored');
+//             }
+//         } else if (event === 'pull_request_review_comment') {
+//             // Handle pull request review comment event
+//             if (payload.action === 'created') {
+//                 // Handle pull request review comment created event
+//                 const pullRequestNumber = payload.pull_request.number;
+//                 const commentBody = payload.comment.body;
+
+//                 // Generate a reply message
+//                 const replyMessage = `Thanks for your comment on pull request #${pullRequestNumber}: ${commentBody}. We will look into this and make any necessary changes.`;
+
+//                 // Post the reply message to GitHub
+//                 await postCommentToPullRequest(payload.repository.owner.login, payload.repository.name, pullRequestNumber, replyMessage);
+
+//                 // Send a response to acknowledge receipt of the webhook event
+//                 response.status(200).send('Webhook received');
+//             } else {
+//                 // Send a response to ignore webhook events that are not relevant
+//                 response.status(200).send('Webhook ignored');
+//             }
+//         } else {
+//             // Send a response to ignore webhook events that are not relevant
+//             response.status(200).send('Webhook ignored');
+//         }
+//     } catch (error) {
+//         console.error(error);
+//         response.status(500).send(error.message);
+//     }
+// });
+
