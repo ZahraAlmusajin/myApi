@@ -9,8 +9,6 @@
 
 const { onRequest } = require("firebase-functions/v2/https");
 const logger = require("firebase-functions/logger");
-// const functions = require('firebase-functions');
-import axios from 'axios';
 const axios = require('axios');
 
 // Create and deploy your first functions
@@ -67,273 +65,90 @@ exports.gitGithubStarredRepos = onRequest(async (request, response) => {
 
 });
 
-// exports.GitHubWebHook = onRequest(async (request, response) => {
-//     try {
-//         const payload = request.body;
-        
-//         // Check if the payload is for an issue, pull request, or comment
-//         if (payload.action === "opened" || payload.action === "created") {
-//             const comment = payload.comment || payload.issue;
-            
-//             // Get the username who made the comment
-//             const username = comment.user.login;
-            
-//             // Generate a reply message using PaLM
-//             const reply = generateReply(comment.body);
-            
-//             // Post the reply as a comment back to GitHub
-//             await postComment(payload.repository.full_name, comment.id, reply);
-            
-//             // Send a success response
-//             response.status(200).send("Reply posted successfully");
-//         } else {
-//             // Ignore other actions
-//             response.status(200).send("Action ignored");
-//         }
-//     } catch (error) {
-//         logger.error("error on github webhook", error.message);
-//         response.status(500).send(error.message);
-//     }
-// });
-
-// exports.GitHubWebHook = onRequest(async (request, response) => {
-//     try {
-//         const access_token = request.body.access_token;
-//         const payload = request.body;
-
-//         // Check if the payload is for an issue, pull request, or comment
-//         if (payload.action === "opened" || payload.action === "created") {
-//             const comment = payload.comment || payload.issue;
-
-//             // Get the username who made the comment
-//             const username = comment.user.login;
-
-//             // Generate a reply message using PaLM
-//             const reply = generateReply(comment.body);
-
-//             // Start a background task to post the reply as a comment back to GitHub
-//             postComment(username,payload.repository.full_name, comment.id, reply)
-//                 .then(() => {
-//                     // Send a success response once the comment is posted
-//                     response.status(200).send("Reply posted successfully");
-//                 })
-//                 .catch((error) => {
-//                     logger.error("Error posting comment:", error);
-//                     response.status(500).send("Error posting comment");
-//                 });
-//         } else {
-//             // Ignore other actions
-//             response.status(200).send("Action ignored");
-//         }
-
-//         const postComment = async (username,full_name,comment, reply ) => {
-//             try {
-//               const response = await axios.post('https://api.github.com/repos/'+username+'/'+full_name+'/'+comment, {
-//                 body: comment,
-//               }, 
-//               {
-//                 headers: {
-//                   Authorization: 'Bearer'+ access_token,
-//                 },
-//               });
-          
-//               console.log(response.data); // If you want to log the response data
-//             } catch (error) {
-//               console.error(error);
-//             }
-//           };
-          
-
-        // const payload = request.body;///
-
-        // let webhook_info = {
-        // repo : payload.repository.name,
-        // author : payload.sender.login,
-        // time : payload.head_commit.timestamp
-        // }
-
-        // const save_webhook = await request.db
-        // .collection("webhooks")
-        // .insertOne(webhook_info);
-
-        // res.status(201).send({
-        // message: "Webhook Event successfully logged"
-        // });///
-    // } catch (error) {
-    //     logger.error("Error on GitHub webhook:", error);
-    //     response.status(500).send("Error processing webhook");
-    // }
-// });
-
-// async function postComment(name, id, reply){
-
-// }
-
-// exports.getGitHubwebhook = functions.https.onRequest(async (request, response) => {
-//     try {
-//         const event = request.headers['x-github-event'];
-//         const payload = request.body;
-
-//         if (event === 'issues') {
-//             // Handle issues event
-//             if (payload.action === 'opened') {
-//                 // Handle issues opened event
-//                 const issueNumber = payload.issue.number;
-//                 const issueTitle = payload.issue.title;
-//                 const issueBody = payload.issue.body;
-
-//                 // Generate a reply message
-//                 const replyMessage = `Thanks for opening issue #${issueNumber} - ${issueTitle}. We will investigate the issue and get back to you as soon as possible.`;
-
-//                 // Post the reply message to GitHub
-//                 await postCommentToIssue(payload.repository.owner.login, payload.repository.name, issueNumber, replyMessage);
-
-//                 // Send a response to acknowledge receipt of the webhook event
-//                 response.status(200).send('Webhook received');
-//             } else {
-//                 // Send a response to ignore webhook events that are not relevant
-//                 response.status(200).send('Webhook ignored');
-//             }
-//         } else if (event === 'issue_comment') {
-//             // Handle issue comment event
-//             if (payload.action === 'created') {
-//                 // Handle issue comment created event
-//                 const issueNumber = payload.issue.number;
-//                 const commentBody = payload.comment.body;
-
-//                 // Generate a reply message
-//                 const replyMessage = `Thanks for your comment on issue #${issueNumber}: ${commentBody}. We will look into this and get back to you.`;
-
-//                 // Post the reply message to GitHub
-//                 await postCommentToIssue(payload.repository.owner.login, payload.repository.name, issueNumber, replyMessage);
-
-//                 // Send a response to acknowledge receipt of the webhook event
-//                 response.status(200).send('Webhook received');
-//             } else {
-//                 // Send a response to ignore webhook events that are not relevant
-//                 response.status(200).send('Webhook ignored');
-//             }
-//         } else if (event === 'pull_request_review') {
-//             // Handle pull request review event
-//             if (payload.action === 'submitted') {
-//                 // Handle pull request review submitted event
-//                 const pullRequestNumber = payload.pull_request.number;
-//                 const reviewBody = payload.review.body;
-
-//                 // Generate a reply message
-//                 const replyMessage = `Thanks for your review on pull request #${pullRequestNumber}: ${reviewBody}. We will address your feedback and make any necessary changes.`;
-
-//                 // Post the reply message to GitHub
-//                 await postCommentToPullRequest(payload.repository.owner.login, payload.repository.name, pullRequestNumber, replyMessage);
-
-//                 // Send a response to acknowledge receipt of the webhook event
-//                 response.status(200).send('Webhook received');
-//             } else if (payload.action === 'edited') {
-//                 // Handle pull request review edited event
-//                 // Do something
-//             } else {
-//                 // Send a response to ignore webhook events that are not relevant
-//                 response.status(200).send('Webhook ignored');
-//             }
-//         } else if (event === 'pull_request') {
-//             // Handle pull request event
-//             if (payload.action === 'opened') {
-//                 // Handle pull request opened event
-//                 const pullRequestNumber = payload.pull_request.number;
-//                 const pullRequestTitle = payload.pull_request.title;
-
-//                 // Generate a reply message
-//                 const replyMessage = `Thanks for opening pull request #${pullRequestNumber} - ${pullRequestTitle}. We will review your changes and get back to you.`;
-
-//                 // Post the reply message to GitHub
-//                 await postCommentToPullRequest(payload.repository.owner.login, payload.repository.name, pullRequestNumber, replyMessage);
-
-//                 // Send a response to acknowledge receipt of the webhook event
-//                 response.status(200).send('Webhook received');
-//             } else {
-//                 // Send a response to ignore webhook events that are not relevant
-//                 response.status(200).send('Webhook ignored');
-//             }
-//         } else if (event === 'pull_request_review_comment') {
-//             // Handle pull request review comment event
-//             if (payload.action === 'created') {
-//                 // Handle pull request review comment created event
-//                 const pullRequestNumber = payload.pull_request.number;
-//                 const commentBody = payload.comment.body;
-
-//                 // Generate a reply message
-//                 const replyMessage = `Thanks for your comment on pull request #${pullRequestNumber}: ${commentBody}. We will look into this and make any necessary changes.`;
-
-//                 // Post the reply message to GitHub
-//                 await postCommentToPullRequest(payload.repository.owner.login, payload.repository.name, pullRequestNumber, replyMessage);
-
-//                 // Send a response to acknowledge receipt of the webhook event
-//                 response.status(200).send('Webhook received');
-//             } else {
-//                 // Send a response to ignore webhook events that are not relevant
-//                 response.status(200).send('Webhook ignored');
-//             }
-//         } else {
-//             // Send a response to ignore webhook events that are not relevant
-//             response.status(200).send('Webhook ignored');
-//         }
-//     } catch (error) {
-//         console.error(error);
-//         response.status(500).send(error.message);
-//     }
-// });
-
-const { spawnSync } = require('child_process');
-const util = require('util');
-const exec = util.promisify(require('child_process').exec);
 
 exports.GitHubWebHook = onRequest(async (request, response) => {
-  try {
-    const payload = request.body;
-    const issueOrComment = payload.issue || payload.comment;
+    try {
+        const payload = request.body;
+        //const event = request.headers['x-github-event'];
 
-    // Check if the payload is for an issue, pull request, or comment
-    if (issueOrComment) {
-      const body = issueOrComment.body;
-      const reply = await generateReply(body);
+        // Check if the payload is for an issue, pull request, or comment
+        if (payload.action === "opened" || payload.action === "created") {
+            const comment = payload.comment || payload.issue || payload.pull_request;
 
-      // Post the reply as a comment back to GitHub
-      await postComment(issueOrComment.html_url, reply);
+            // Get the username who made the comment
+            const username = comment.user.login;
 
-      // Send a success response
-      response.status(200).send("Reply posted successfully");
-    } else {
-      // Ignore other actions
-      response.status(200).send("Action ignored");
+            // Generate a reply message using PaLM
+            const reply = await generateReply(payload.body);
+
+            // Start a background task to post the reply as a comment back to GitHub
+            postComment(event ,payload, payload.repository.full_name, reply)
+                .then(() => {
+                    // Send a success response once the comment is posted
+                    response.status(200).send("Reply posted successfully");
+                })
+                .catch((error) => {
+                    logger.error("Error posting comment:", error);
+                    response.status(500).send("Error posting comment");
+                });
+        } else {
+            // Ignore other actions
+            response.status(200).send("Action ignored");
+        }
+    } catch (error) {
+        logger.error("Error on GitHub webhook:", error);
+        response.status(500).send("Error processing webhook");
     }
-  } catch (error) {
-    logger.error("error on github webhook", error.message);
-    response.status(500).send(error.message);
-  }
 });
 
-async function generateReply(commentBody) {
-  // Run PaLM as a child process
-  const result = spawnSync('palm', ['reply', '-m', 'my-model'], { input: commentBody });
+exports.getReply = onRequest(async (req, res) => {
+    const rply = await generateReply("hi");
+    res.send(rply);
+})
 
-  if (result.status !== 0) {
-    throw new Error(`PaLM exited with status code ${result.status}`);
-  }
+async function postComment(payload, repoName, reply) {
+    try {
+        const isuueNum = payload.issue.number;
+        logger.log("fullname: ", repoName);
+        logger.log("comment: ", isuueNum);
+        logger.log("reply: ", reply);
+        const access_token = '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';
+        //if (payload.issue){
+            const response = await axios.post('https://api.github.com/repos/' + repoName + '/issues/' + isuueNum + '/comments', {
+                body: reply,
+            },
+                {
+                    headers: {
+                        Authorization: `Bearer ${access_token}`,
+                    },
+                });
+            response.send(postComment)
+        //}
+        // console.log(response.data); // If you want to log the response data
+    } catch (error) {
+        console.error(error);
+    }
+};
 
-  return result.stdout.toString().trim();
-}
+async function generateReply(inputMessage) {
+    try {
+        // const response = await axios.post('users/{uid}/discussions/{discussionId}/messages', {
+        //     input: inputMessage
+        // });
 
-async function postComment(url, comment) {
-  const authToken = process.env.GITHUB_ACCESS_TOKEN;
-  const repoUrl = url.substring(0, url.indexOf('/issues/'));
-  const issueNumber = url.substring(url.lastIndexOf('/') + 1);
-  const apiUrl = `${repoUrl}/issues/${issueNumber}/comments`;
 
-  const { stdout, stderr } = await exec(`curl -H "Authorization: token ${authToken}" -d '{"body": "${comment}"}' -X POST ${apiUrl}`);
+        // // Extract the generated reply from the response
+        // const generatedReply = response.data.reply;
 
-  if (stderr) {
-    throw new Error(stderr);
-  }
+        // response.send(generatedReply);
+        return new Promise((resolve, reject) => {
+            resolve("hello world");
+        });
 
-  return JSON.parse(stdout);
-}
+    } catch (error) {
+        console.error("Error generating reply:", error);
+        // Return a default error message or handle the error appropriately
+        response.send("Error generating reply. Please try again later.");
+    }
+};
+// comment
