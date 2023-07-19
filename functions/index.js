@@ -28,7 +28,7 @@ exports.onAIResponse = onDocumentUpdated("users/{user_id}/discussions/{dicussion
         const message = event.data.after.data()
         if (message.status && message.status.state === "COMPLETED") {
             const number = event.params.dicussion_id;
-            const replay = message.response + "/n" + bot_pattern;
+            const replay = message.response + "\n" + bot_pattern;
             const full_name = message.full_name;
             const issueOrPull = message.issueOrPull;
             logger.log("number: ", number);
@@ -158,7 +158,7 @@ async function postComment(full_name, comment, reply, issueOrPull) {
         // logger.log("fullname: ", full_name);
         // logger.log("comment: ", comment);
         // logger.log("reply: ", reply);
-        const access_token = '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';
+        const access_token = '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';
         if (issueOrPull === "issues") {
             const response = await axios.post('https://api.github.com/repos/' + full_name + '/issues/' + comment + '/comments', {
                 body: reply,
@@ -185,8 +185,7 @@ async function postComment(full_name, comment, reply, issueOrPull) {
     }
 };
 
-
-//four jhgh
-//hi
+//test
+//four
 //three
 //two
