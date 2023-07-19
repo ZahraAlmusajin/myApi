@@ -158,7 +158,7 @@ async function postComment(full_name, comment, reply, issueOrPull) {
         // logger.log("fullname: ", full_name);
         // logger.log("comment: ", comment);
         // logger.log("reply: ", reply);
-        const access_token = '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';
+        const access_token = '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';
         if (issueOrPull === "issues") {
             const response = await axios.post('https://api.github.com/repos/' + full_name + '/issues/' + comment + '/comments', {
                 body: reply,
@@ -192,3 +192,4 @@ async function postComment(full_name, comment, reply, issueOrPull) {
 
 //last 
 //one
+//five
