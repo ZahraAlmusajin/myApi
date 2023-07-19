@@ -186,6 +186,6 @@ async function postComment(full_name, comment, reply, issueOrPull) {
 };
 
 
-//hi
+//hi hello
 //three
 //two
