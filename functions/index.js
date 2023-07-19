@@ -30,13 +30,13 @@ exports.onAIResponse = onDocumentUpdated("users/{user_id}/discussions/{dicussion
             const number = event.params.dicussion_id;
             const replay = message.response + "/n" + bot_pattern;
             const full_name = message.full_name;
-            const num = message.num;
+            const issueOrPull = message.issueOrPull;
             logger.log("number: ", number);
             logger.log("replay: ", replay);
             logger.log("full_name: ", full_name);
-            logger.log("num: ", num);
+            logger.log("issueOrPull: ", issueOrPull);
 
-            postComment(full_name, number, replay).then(() => {
+            postComment(full_name, number, replay, issueOrPull).then(() => {
                 // Send a success response once the comment is posted
                 logger.log("Reply posted successfully");
             }).catch((error) => {
@@ -109,6 +109,8 @@ exports.GitHubWebHook = onRequest(async (request, response) => {
 
             //logger.log("payload: ", payload);
             const test = comment.body;
+            let issueOrPull = "issues";
+            logger.log("issueOrPull: ", issueOrPull);
 
             // Generate a reply message using PaLM
             if (!test.includes(bot_pattern)) {
@@ -120,6 +122,7 @@ exports.GitHubWebHook = onRequest(async (request, response) => {
                 } else if (payload.pull_request) {
                     user_id = payload.pull_request.id;
                     number = payload.pull_request.number;
+                    issueOrPull = "pull_request";
                 } else {
                     return;
                 }
@@ -131,8 +134,7 @@ exports.GitHubWebHook = onRequest(async (request, response) => {
                 await ref.set({
                     prompt: comment.body,
                     full_name: payload.repository.full_name,
-                    num : payload.issue.number
-
+                    issueOrPull: issueOrPull
                 })
 
                 response.send("ok")
@@ -151,25 +153,36 @@ exports.GitHubWebHook = onRequest(async (request, response) => {
 });
 
 
-async function postComment(full_name, comment, reply) {
+async function postComment(full_name, comment, reply, issueOrPull) {
     try {
-        logger.log("fullname: ", full_name);
-        logger.log("comment: ", comment);
-        logger.log("reply: ", reply);
-        const access_token = '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';
-        const response = await axios.post('https://api.github.com/repos/' + full_name + '/issues/' + comment + '/comments', {
-            body: reply,
-        },
-            {
-                headers: {
-                    Authorization: `Bearer ${access_token}`,
-                },
-            });
+        // logger.log("fullname: ", full_name);
+        // logger.log("comment: ", comment);
+        // logger.log("reply: ", reply);
+        const access_token = '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';
+        if (issueOrPull === "issues") {
+            const response = await axios.post('https://api.github.com/repos/' + full_name + '/issues/' + comment + '/comments', {
+                body: reply,
+            },
+                {
+                    headers: {
+                        Authorization: `Bearer ${access_token}`,
+                    },
+                });            
+        } else if (issueOrPull === "pull_request") {
+            const response = await axios.post('https://api.github.com/repos/' + full_name + '/pulls/' + comment + '/comments', {
+                body: reply,
+            },
+                {
+                    headers: {
+                        Authorization: `Bearer ${access_token}`,
+                    },
+                });            
+        }
         // response.send(postComment);
-        console.log(response.data); // If you want to log the response data
+        // If you want to log the response data
     } catch (error) {
         console.error(error);
     }
 };
-//tr
+//three
 //two
