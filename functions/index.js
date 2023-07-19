@@ -6,14 +6,47 @@
  *
  * See a full list of supported triggers at https://firebase.google.com/docs/functions
  */
-
 const { onRequest } = require("firebase-functions/v2/https");
 const logger = require("firebase-functions/logger");
 const axios = require('axios');
 
-// Create and deploy your first functions
-// https://firebase.google.com/docs/functions/get-started
+const { onDocumentUpdated } = require("firebase-functions/v2/firestore");
+const { initializeApp } = require("firebase-admin/app");
+const { getFirestore } = require("firebase-admin/firestore");
 
+const app = initializeApp();
+const db = getFirestore(app);
+
+
+
+const bot_pattern = "...from_bot...";
+// Create and deploy your first functions
+// // https://firebase.google.com/docs/functions/get-started
+
+exports.onAIResponse = onDocumentUpdated("users/{user_id}/discussions/{dicussion_id}/messages/{message_id}", async (event) => {
+    try {
+        const message = event.data.after.data()
+        if (message.status && message.status.state === "COMPLETED") {
+            const number = event.params.dicussion_id;
+            const replay = message.response + "/n" + bot_pattern;
+            const full_name = message.full_name;
+            const num = message.num;
+            logger.log("number: ", number);
+            logger.log("replay: ", replay);
+            logger.log("full_name: ", full_name);
+            logger.log("num: ", num);
+
+            postComment(full_name, number, replay).then(() => {
+                // Send a success response once the comment is posted
+                logger.log("Reply posted successfully");
+            }).catch((error) => {
+                logger.error("Error posting comment:", error);
+            });
+        }
+    } catch (error) {
+        logger.error("this error from onAIRepsonse " + error.message)
+    }
+})
 
 exports.gitGithubToken = onRequest(async (request, response) => {
     const code = request.body.code;
@@ -69,28 +102,44 @@ exports.gitGithubStarredRepos = onRequest(async (request, response) => {
 exports.GitHubWebHook = onRequest(async (request, response) => {
     try {
         const payload = request.body;
-        //const event = request.headers['x-github-event'];
 
         // Check if the payload is for an issue, pull request, or comment
         if (payload.action === "opened" || payload.action === "created") {
-            const comment = payload.comment || payload.issue || payload.pull_request;
+            const comment = payload.comment || payload.issue;
 
-            // Get the username who made the comment
-            const username = comment.user.login;
+            //logger.log("payload: ", payload);
+            const test = comment.body;
 
             // Generate a reply message using PaLM
-            const reply = await generateReply(payload.body);
+            if (!test.includes(bot_pattern)) {
+                let user_id = "1";
+                let number = "1";
+                if (payload.issue) {
+                    user_id = payload.issue.user.id;
+                    number = payload.issue.number;
+                } else if (payload.pull_request) {
+                    user_id = payload.pull_request.id;
+                    number = payload.pull_request.number;
+                } else {
+                    return;
+                }
 
-            // Start a background task to post the reply as a comment back to GitHub
-            postComment(event ,payload, payload.repository.full_name, reply)
-                .then(() => {
-                    // Send a success response once the comment is posted
-                    response.status(200).send("Reply posted successfully");
+                // logger.log("user_id: ", user_id);
+                // logger.log("number: ", number);
+
+                const ref = db.collection(`users/${user_id}/discussions/${number}/messages`).doc();
+                await ref.set({
+                    prompt: comment.body,
+                    full_name: payload.repository.full_name,
+                    num : payload.issue.number
+
                 })
-                .catch((error) => {
-                    logger.error("Error posting comment:", error);
-                    response.status(500).send("Error posting comment");
-                });
+
+                response.send("ok")
+            } else {
+                // Ignore other actions
+                response.status(200).send("Action ignored");
+            }
         } else {
             // Ignore other actions
             response.status(200).send("Action ignored");
@@ -101,54 +150,26 @@ exports.GitHubWebHook = onRequest(async (request, response) => {
     }
 });
 
-exports.getReply = onRequest(async (req, res) => {
-    const rply = await generateReply("hi");
-    res.send(rply);
-})
 
-async function postComment(payload, repoName, reply) {
+async function postComment(full_name, comment, reply) {
     try {
-        const isuueNum = payload.issue.number;
-        logger.log("fullname: ", repoName);
-        logger.log("comment: ", isuueNum);
+        logger.log("fullname: ", full_name);
+        logger.log("comment: ", comment);
         logger.log("reply: ", reply);
-        const access_token = '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';
-        //if (payload.issue){
-            const response = await axios.post('https://api.github.com/repos/' + repoName + '/issues/' + isuueNum + '/comments', {
-                body: reply,
-            },
-                {
-                    headers: {
-                        Authorization: `Bearer ${access_token}`,
-                    },
-                });
-            response.send(postComment)
-        //}
-        // console.log(response.data); // If you want to log the response data
+        const access_token = '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';
+        const response = await axios.post('https://api.github.com/repos/' + full_name + '/issues/' + comment + '/comments', {
+            body: reply,
+        },
+            {
+                headers: {
+                    Authorization: `Bearer ${access_token}`,
+                },
+            });
+        // response.send(postComment);
+        console.log(response.data); // If you want to log the response data
     } catch (error) {
         console.error(error);
     }
 };
 
-async function generateReply(inputMessage) {
-    try {
-        // const response = await axios.post('users/{uid}/discussions/{discussionId}/messages', {
-        //     input: inputMessage
-        // });
-
-
-        // // Extract the generated reply from the response
-        // const generatedReply = response.data.reply;
-
-        // response.send(generatedReply);
-        return new Promise((resolve, reject) => {
-            resolve("hello world");
-        });
-
-    } catch (error) {
-        console.error("Error generating reply:", error);
-        // Return a default error message or handle the error appropriately
-        response.send("Error generating reply. Please try again later.");
-    }
-};
-// comment
+//two
