@@ -169,7 +169,7 @@ async function postComment(full_name, comment, reply, issueOrPull) {
                     },
                 });            
         } else if (issueOrPull === "pull_request") {
-            const response = await axios.post('https://api.github.com/repos/' + full_name + '/pulls/' + comment + '/comments', {
+            const response = await axios.post('https://api.github.com/repos/' + full_name + '/pulls/' + comment, {
                 body: reply,
             },
                 {
@@ -186,6 +186,6 @@ async function postComment(full_name, comment, reply, issueOrPull) {
 };
 
 
-//hi hello
+//four
 //three
 //two
